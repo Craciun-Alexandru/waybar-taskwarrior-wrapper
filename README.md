@@ -56,8 +56,8 @@ CSS classes: `overdue`, `today`, `tomorrow`, `later`, `nodate`, `empty`.
 
 ## Sync (Radicale + vdirsyncer, iPhone Reminders)
 
-Example files are in [`sync/`](sync/). The server runs [Radicale](https://radicale.org) as a systemd user service, bound to its
-Tailscale address only. The laptop runs vdirsyncer every 2 minutes, and wtodo also starts a sync after each change.
+Example files are in [`sync/`](sync/). The server runs [Radicale](https://radicale.org) as a systemd user service on localhost,
+and `tailscale serve` exposes it over HTTPS to the tailnet. iOS won't send a CalDAV password over plain HTTP, so HTTPS is required. The laptop runs vdirsyncer every 2 minutes, and wtodo also starts a sync after each change.
 
 **Server**
 
@@ -66,6 +66,9 @@ python3 -m venv ~/.local/share/radicale/venv
 ~/.local/share/radicale/venv/bin/pip install radicale bcrypt
 # users file: "<user>:<bcrypt hash>"; config and unit from sync/
 systemctl --user enable --now radicale.service
+# one-time: enable HTTPS certificates in the Tailscale admin console, then
+sudo tailscale set --operator=$USER
+tailscale serve --bg http://127.0.0.1:5232
 ```
 
 Pre-create each list as task-only, so iOS shows it in Reminders rather than Calendar:
@@ -80,4 +83,5 @@ pipx install vdirsyncer
 systemctl --user enable --now wtodo-sync.timer
 ```
 
-**iPhone**: Settings → Apps → Reminders → Reminder Accounts → Add Account → Other → Add CalDAV Account.
+**iPhone**: Settings → Apps → Reminders → Reminder Accounts → Add Account → Other → Add CalDAV Account,
+with server `<host>.<tailnet>.ts.net`. Keep Tailscale on, with VPN On Demand.
