@@ -137,14 +137,6 @@ func fit(s string, n int) string {
 	return s + strings.Repeat(" ", n-utf8.RuneCountInString(s))
 }
 
-// clip cuts s to n characters, ending in "..." if it was longer.
-func clip(s string, n int) string {
-	if r := []rune(s); len(r) > n {
-		return string(r[:n-3]) + "..."
-	}
-	return s
-}
-
 // oneLine collapses newlines and runs of spaces into single spaces.
 func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
@@ -187,8 +179,8 @@ func tooltip(ts []*Task, now time.Time) string {
 			}
 			fmt.Fprintf(&sb, "\n<span color='%s'></span>  %s  <span color='%s'>%-14s #%s</span>",
 				prioColor[t.Prio], html.EscapeString(fit(t.Summary, 36)), dimColor, dueLabel(t, now), listName(t.List))
-			if t.Note != "" { // one line, as wide as name + due columns
-				fmt.Fprintf(&sb, "\n   <span color='%s'><i>%s</i></span>", dimColor, html.EscapeString(clip(oneLine(t.Note), 52)))
+			for _, l := range noteLines(t.Note, 52) { // as wide as name + due columns
+				fmt.Fprintf(&sb, "\n   <span color='%s'><i>%s</i></span>", dimColor, l)
 			}
 		}
 	}

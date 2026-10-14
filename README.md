@@ -31,7 +31,8 @@ call mom fri 18:00 !! #home // ask about Sunday
 - **Due:** `today`, `tomorrow`, `fri`/`friday`, `+3d`, `+2w`, `+2h`, `20.10`, `20.10.2026`, `2026-10-20`, optionally with a `18:00` time. A time alone means today, or tomorrow if it has already passed.
 - **Priority:** `!` low, `!!` medium, `!!!` high.
 - **List:** `#name`. A new name creates the list. The default list is `personal`.
-- **Note:** everything after ` //` (the space before `//` is required, so URLs are safe), e.g. `call mom fri // ask about Sunday`. This is the "Notes" field in iOS Reminders, shown as one line under the task in the tooltip.
+- **Note:** everything after ` //` (the space before `//` is required, so URLs are safe), e.g. `call mom fri // ask about Sunday`. This is the "Notes" field in iOS Reminders, shown in full under the task in the tooltip, wrapped to the tooltip's width.
+  Links use Obsidian syntax, `[[https://example.com|name]]`, and the tooltip shows only `name`, underlined in blue. When a note is saved, bare URLs and `[[target]]` links are converted to `[[target|LINK]]`.
 
 **Edit…** in the menu pre-fills the task in this syntax, so one prompt edits everything.
 

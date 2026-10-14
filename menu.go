@@ -84,7 +84,7 @@ func taskMenu(t *Task, now time.Time) error {
 		t.Summary, t.Due, t.HasTime, t.Prio = p.Summary, p.Due, p.HasTime, p.Prio
 		// The prompt shows the note on one line; only replace it if it was
 		// changed, so multi-line notes from the iPhone keep their line breaks.
-		if p.Note != oneLine(t.Note) {
+		if p.Note != oneLine(linkify(t.Note)) {
 			t.Note = p.Note
 		}
 		if p.List != "" {
@@ -113,7 +113,7 @@ func editText(t *Task) string {
 	}
 	parts = append(parts, "#"+t.List)
 	if t.Note != "" {
-		parts = append(parts, "//", oneLine(t.Note))
+		parts = append(parts, "//", oneLine(linkify(t.Note)))
 	}
 	return strings.Join(parts, " ")
 }

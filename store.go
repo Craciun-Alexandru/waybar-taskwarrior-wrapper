@@ -164,7 +164,7 @@ func newTask(list string) *Task {
 func (t *Task) save() error {
 	p, now := t.todo.Props, time.Now().UTC()
 	p.SetText(ical.PropSummary, t.Summary)
-	if t.Note != "" {
+	if t.Note = linkify(t.Note); t.Note != "" {
 		p.SetText(ical.PropDescription, t.Note)
 	} else {
 		p.Del(ical.PropDescription)
