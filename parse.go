@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const syntaxHelp = "tomorrow · fri · +3d · +2h · 20.10 · 2026-10-20 · 18:00 · !/!!/!!! priority · #list"
+const syntaxHelp = "tomorrow · fri · +3d · +2h · 20.10 · 2026-10-20 · 18:00 · !/!!/!!! priority · #list · // note"
 
 // parse turns "call mom fri 18:00 !! #home" into a task's fields.
 // Recognised tokens are removed; everything else becomes the summary.
@@ -15,6 +15,11 @@ func parse(input string, now time.Time) Task {
 	var words []string
 	var date time.Time
 	clock := -1 // minutes since midnight
+
+	// Everything after " //" is the note (the space keeps URLs intact).
+	if i := strings.Index(input, " //"); i >= 0 {
+		input, t.Note = input[:i], strings.TrimSpace(input[i+3:])
+	}
 
 	for _, w := range strings.Fields(input) {
 		lw := strings.ToLower(w)

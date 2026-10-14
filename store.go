@@ -44,6 +44,7 @@ func (p Priority) bangs() string { return strings.Repeat("!", (4-int(p))%4) }
 
 type Task struct {
 	Summary string
+	Note    string    // DESCRIPTION; "Notes" in iOS Reminders
 	Due     time.Time // zero = no due date; midnight when date-only
 	HasTime bool
 	Prio    Priority
@@ -127,6 +128,7 @@ func readTask(path string) (*Task, error) {
 	p := todo.Props
 	t := &Task{List: filepath.Base(filepath.Dir(path)), path: path, cal: cal, todo: todo}
 	t.Summary, _ = p.Text(ical.PropSummary)
+	t.Note, _ = p.Text(ical.PropDescription)
 	status, _ := p.Text(ical.PropStatus)
 	t.Done = status == "COMPLETED" || status == "CANCELLED" || p.Get(ical.PropCompleted) != nil
 	if pr := p.Get(ical.PropPriority); pr != nil {
@@ -162,6 +164,11 @@ func newTask(list string) *Task {
 func (t *Task) save() error {
 	p, now := t.todo.Props, time.Now().UTC()
 	p.SetText(ical.PropSummary, t.Summary)
+	if t.Note != "" {
+		p.SetText(ical.PropDescription, t.Note)
+	} else {
+		p.Del(ical.PropDescription)
+	}
 
 	p.Del(ical.PropPriority)
 	if t.Prio != 0 {

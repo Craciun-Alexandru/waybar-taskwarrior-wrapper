@@ -20,6 +20,7 @@ func TestParse(t *testing.T) {
 		{"ping +2h", "ping", "2026-10-13 21:00", 0, ""},
 		{"water tue", "water", "2026-10-20 00:00", 0, ""}, // next Tuesday, not today
 		{"read book", "read book", "0001-01-01 00:00", 0, ""},
+		{"see https://go.dev tomorrow // and the blog", "see https://go.dev", "2026-10-14 00:00", 0, ""},
 	}
 	for _, c := range cases {
 		p := parse(c.in, now)
@@ -30,9 +31,9 @@ func TestParse(t *testing.T) {
 }
 
 func TestEditRoundTrip(t *testing.T) {
-	orig := parse("finish report fri 09:30 !!! #work", now)
+	orig := parse("finish report fri 09:30 !!! #work // send to Anna", now)
 	got := parse(editText(&orig), now)
-	if got.Summary != orig.Summary || !got.Due.Equal(orig.Due) || got.HasTime != orig.HasTime || got.Prio != orig.Prio || got.List != orig.List {
+	if got.Summary != orig.Summary || !got.Due.Equal(orig.Due) || got.HasTime != orig.HasTime || got.Prio != orig.Prio || got.List != orig.List || got.Note != orig.Note {
 		t.Errorf("round trip changed task: %+v -> %+v", orig, got)
 	}
 }
