@@ -42,7 +42,7 @@ func main() {
 	case "add":
 		text := strings.Join(os.Args[2:], " ")
 		if text == "" {
-			text = prompt("New task › ", "")
+			text = prompt("New task › ", "", false)
 		}
 		err = add(text)
 	case "done":

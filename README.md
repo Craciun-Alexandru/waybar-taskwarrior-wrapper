@@ -17,10 +17,25 @@ go build -o ~/.local/bin/wtodo .
 | | |
 |---|---|
 | `wtodo waybar` | JSON for the waybar module |
-| `wtodo menu` | fuzzel menu: pick a task to complete / snooze / edit / delete; type text that matches nothing to add it |
+| `wtodo menu` | fuzzel menu with vim-style keys (below) |
 | `wtodo add [text]` | add a task (prompts with fuzzel if no text) |
 | `wtodo done` | complete the task shown on the bar |
 | `wtodo list` | print open tasks |
+
+## Menu keys
+
+The menu opens in NORMAL mode:
+
+| Key | Action |
+|---|---|
+| `j` / `k` | down / up |
+| `l` | mark the highlighted task done |
+| `h` | edit the task (cursor at the start, if [wtype](https://github.com/atx/wtype) is installed) |
+| `Enter` | actions: done, snooze, edit, delete |
+| `i` | INSERT mode: type to search; text that matches nothing + `Enter` adds a task |
+| `Esc` | INSERT → NORMAL; NORMAL → quit |
+
+Fuzzel has no modes, so switching modes reopens fuzzel. This clears the search text but keeps the highlighted task.
 
 ## Quick-add syntax
 
