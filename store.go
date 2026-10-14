@@ -152,10 +152,14 @@ func readTask(path string) (*Task, error) {
 	return t, nil
 }
 
-func newTask(list string) *Task {
+func newID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
-	uid := hex.EncodeToString(b)
+	return hex.EncodeToString(b)
+}
+
+func newTask(list string) *Task {
+	uid := newID()
 
 	cal := ical.NewCalendar()
 	cal.Props.SetText(ical.PropVersion, "2.0")
@@ -213,6 +217,9 @@ func (t *Task) save() error {
 		// A stale start date or alarm would contradict the new due date.
 		p.Del(ical.PropDateTimeStart)
 		t.todo.Children = nil
+		if t.HasTime { // iOS alerts only for reminders with a time
+			t.todo.Children = append(t.todo.Children, alarm(t.Due))
+		}
 		t.origDue = t.Due
 	}
 
@@ -269,4 +276,18 @@ func finish(t *Task, del bool) error {
 		}
 	}
 	return saved(nil)
+}
+
+// alarm is a phone notification at the due time, written the way iOS does.
+func alarm(at time.Time) *ical.Component {
+	uid := newID()
+	a := ical.NewComponent(ical.CompAlarm)
+	a.Props.SetText(ical.PropUID, uid)
+	a.Props.SetText("X-WR-ALARMUID", uid)
+	a.Props.SetText(ical.PropAction, "DISPLAY")
+	a.Props.SetText(ical.PropDescription, "Reminder")
+	trigger := ical.NewProp(ical.PropTrigger)
+	trigger.SetDateTime(at.UTC()) // TRIGGER;VALUE=DATE-TIME:…Z
+	a.Props.Set(trigger)
+	return a
 }

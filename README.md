@@ -114,5 +114,8 @@ If syncs fail at random with `No address associated with hostname`, the server h
 systemd-resolved sometimes fails the combined IPv4+IPv6 lookup of the MagicDNS name. Pin the name in `/etc/hosts`:
 `<tailscale-ip> <host>.<tailnet>.ts.net`.
 
+Tasks with a due time get a phone alert at that time, the way iOS adds one to its own reminders. Changing the
+due time moves the alert. Tasks with only a date get no alert.
+
 **iPhone**: Settings → Apps → Reminders → Reminder Accounts → Add Account → Other → Add CalDAV Account,
 with server `<host>.<tailnet>.ts.net`. Keep Tailscale on, with VPN On Demand.
