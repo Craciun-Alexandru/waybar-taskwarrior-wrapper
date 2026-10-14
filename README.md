@@ -110,5 +110,9 @@ pipx install vdirsyncer
 systemctl --user enable --now wtodo-sync.timer
 ```
 
+If syncs fail at random with `No address associated with hostname`, the server has no IPv6 DNS record, and
+systemd-resolved sometimes fails the combined IPv4+IPv6 lookup of the MagicDNS name. Pin the name in `/etc/hosts`:
+`<tailscale-ip> <host>.<tailnet>.ts.net`.
+
 **iPhone**: Settings → Apps → Reminders → Reminder Accounts → Add Account → Other → Add CalDAV Account,
 with server `<host>.<tailnet>.ts.net`. Keep Tailscale on, with VPN On Demand.
