@@ -19,6 +19,9 @@ import (
 
 const defaultList = "personal"
 
+// Tasks with only a due date get their phone alert at this hour.
+const dateAlertHour = 11
+
 // Priority: 0 none, 1 high, 2 medium, 3 low (the three levels iOS has).
 type Priority int
 
@@ -217,8 +220,8 @@ func (t *Task) save() error {
 		// A stale start date or alarm would contradict the new due date.
 		p.Del(ical.PropDateTimeStart)
 		t.todo.Children = nil
-		if t.HasTime { // iOS alerts only for reminders with a time
-			t.todo.Children = append(t.todo.Children, alarm(t.Due))
+		if at := t.alertTime(); !at.IsZero() {
+			t.todo.Children = append(t.todo.Children, alarm(at))
 		}
 		t.origDue = t.Due
 	}
@@ -290,4 +293,14 @@ func alarm(at time.Time) *ical.Component {
 	trigger.SetDateTime(at.UTC()) // TRIGGER;VALUE=DATE-TIME:…Z
 	a.Props.Set(trigger)
 	return a
+}
+
+// alertTime is when the phone should alert: the due time, or 11:00 on the
+// due date for date-only tasks.
+func (t *Task) alertTime() time.Time {
+	if !t.HasDue() || t.HasTime {
+		return t.Due
+	}
+	y, m, d := t.Due.Date()
+	return time.Date(y, m, d, dateAlertHour, 0, 0, 0, time.Local)
 }

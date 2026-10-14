@@ -115,7 +115,8 @@ systemd-resolved sometimes fails the combined IPv4+IPv6 lookup of the MagicDNS n
 `<tailscale-ip> <host>.<tailnet>.ts.net`.
 
 Tasks with a due time get a phone alert at that time, the way iOS adds one to its own reminders. Changing the
-due time moves the alert. Tasks with only a date get no alert.
+due time moves the alert. Tasks with only a date get their alert at 11:00 that day (`dateAlertHour` in
+`store.go`). iOS's "Urgent" alarms only work with iCloud Reminders, so they aren't available on these lists.
 
 **iPhone**: Settings → Apps → Reminders → Reminder Accounts → Add Account → Other → Add CalDAV Account,
 with server `<host>.<tailnet>.ts.net`. Keep Tailscale on, with VPN On Demand.

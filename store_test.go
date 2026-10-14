@@ -39,10 +39,17 @@ func TestAlarm(t *testing.T) {
 		t.Fatal("alarm changed although the due date didn't")
 	}
 
-	task.HasTime = false // date-only reminders get no alert
+	task.HasTime = false // date-only: alert at 11:00 local on that day
 	task.Due = time.Date(2026, 10, 14, 0, 0, 0, 0, time.Local)
 	task.save()
+	at := time.Date(2026, 10, 14, 11, 0, 0, 0, time.Local).UTC().Format("20060102T150405Z")
+	if s := encoded(task); strings.Count(s, "BEGIN:VALARM") != 1 || !strings.Contains(s, "DATE-TIME:"+at) {
+		t.Fatalf("date-only task: want one alarm at %s:\n%s", at, s)
+	}
+
+	task.Due = time.Time{} // no due date: no alert
+	task.save()
 	if strings.Contains(encoded(task), "VALARM") {
-		t.Fatal("date-only task has an alarm")
+		t.Fatal("task without a due date has an alarm")
 	}
 }
