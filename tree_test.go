@@ -15,7 +15,7 @@ func TestTree(t *testing.T) {
 		task("flights", "trip"),
 		task("pack", "trip"),
 		task("trip", ""),
-		task("orphan", "gone"), // parent done or deleted
+		task("orphan", "gone"),         // parent done or deleted
 		task("a", "b"), task("b", "a"), // a cycle must not hang or vanish
 	}
 	var got []string

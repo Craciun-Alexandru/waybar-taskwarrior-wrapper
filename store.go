@@ -200,7 +200,12 @@ func (t *Task) save() error {
 	case !t.HasDue():
 		p.Del(ical.PropDue)
 	case t.HasTime:
-		p.SetDateTime(ical.PropDue, t.Due.UTC())
+		if loc := localZone(); loc != nil { // DUE;TZID=Europe/Berlin:…, like iOS
+			p.SetDateTime(ical.PropDue, t.Due.In(loc))
+			addTimezone(t.cal, loc, t.Due.Year())
+		} else {
+			p.SetDateTime(ical.PropDue, t.Due.UTC())
+		}
 	default:
 		p.SetDate(ical.PropDue, t.Due)
 	}
