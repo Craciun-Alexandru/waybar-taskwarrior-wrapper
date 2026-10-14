@@ -83,7 +83,7 @@ func taskMenu(t *Task, now time.Time) error {
 		}
 		t.Summary, t.Due, t.HasTime, t.Prio = p.Summary, p.Due, p.HasTime, p.Prio
 		if p.List != "" {
-			t.List = p.List
+			t.List = listDir(p.List)
 		}
 	case "delete":
 		return saved(t.remove())

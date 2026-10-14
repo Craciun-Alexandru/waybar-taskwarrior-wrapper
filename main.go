@@ -175,7 +175,7 @@ func tooltip(ts []*Task, now time.Time) string {
 				header = true
 			}
 			fmt.Fprintf(&sb, "\n<span color='%s'></span>  %s  <span color='%s'>%-14s #%s</span>",
-				prioColor[t.Prio], html.EscapeString(fit(t.Summary, 36)), dimColor, dueLabel(t, now), t.List)
+				prioColor[t.Prio], html.EscapeString(fit(t.Summary, 36)), dimColor, dueLabel(t, now), listName(t.List))
 		}
 	}
 	return sb.String()
@@ -192,7 +192,7 @@ func printList() error {
 
 // line is the plain-text form of a task, used by `list` and the menu.
 func line(t *Task, now time.Time) string {
-	return fmt.Sprintf("%-3s %s  %-14s #%s", t.Prio.bangs(), fit(t.Summary, 36), dueLabel(t, now), t.List)
+	return fmt.Sprintf("%-3s %s  %-14s #%s", t.Prio.bangs(), fit(t.Summary, 36), dueLabel(t, now), listName(t.List))
 }
 
 func add(text string) error {
@@ -203,7 +203,7 @@ func add(text string) error {
 	if p.List == "" {
 		p.List = defaultList
 	}
-	t := newTask(p.List)
+	t := newTask(listDir(p.List))
 	t.Summary, t.Due, t.HasTime, t.Prio = p.Summary, p.Due, p.HasTime, p.Prio
 	return saved(t.save())
 }
@@ -223,6 +223,8 @@ func doneTop() error {
 func saved(err error) error {
 	if err == nil {
 		exec.Command("pkill", waybarSignal, "waybar").Run()
+		// Push to the phone right away; harmless if sync isn't set up.
+		exec.Command("systemctl", "--user", "start", "--no-block", "wtodo-sync.service").Run()
 	}
 	return err
 }

@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync wtodo tasks with Radicale
+
+[Service]
+Type=oneshot
+# discover picks up lists created on either side; yes answers its prompts.
+# --force-delete: deleting the last task of a list is normal for a to-do list.
+ExecStart=/bin/sh -c 'yes | %h/.local/bin/vdirsyncer discover >/dev/null && %h/.local/bin/vdirsyncer metasync && %h/.local/bin/vdirsyncer sync --force-delete'
+ExecStartPost=/usr/bin/pkill -RTMIN+8 waybar

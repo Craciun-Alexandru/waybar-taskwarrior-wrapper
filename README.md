@@ -53,3 +53,31 @@ Tasks due by the end of today (or overdue) come first, then by priority, then by
 ```
 
 CSS classes: `overdue`, `today`, `tomorrow`, `later`, `nodate`, `empty`.
+
+## Sync (Radicale + vdirsyncer, iPhone Reminders)
+
+Example files are in [`sync/`](sync/). The server runs [Radicale](https://radicale.org) as a systemd user service, bound to its
+Tailscale address only. The laptop runs vdirsyncer every 2 minutes, and wtodo also starts a sync after each change.
+
+**Server**
+
+```bash
+python3 -m venv ~/.local/share/radicale/venv
+~/.local/share/radicale/venv/bin/pip install radicale bcrypt
+# users file: "<user>:<bcrypt hash>"; config and unit from sync/
+systemctl --user enable --now radicale.service
+```
+
+Pre-create each list as task-only, so iOS shows it in Reminders rather than Calendar:
+`collection-root/<user>/<list>/.Radicale.props` = `{"tag": "VCALENDAR", "D:displayname": "Work", "C:supported-calendar-component-set": "VTODO"}`.
+Lists created later from either side are picked up automatically.
+
+**Laptop**
+
+```bash
+pipx install vdirsyncer
+# ~/.config/vdirsyncer/config from sync/, password in ~/.config/vdirsyncer/radicale-password
+systemctl --user enable --now wtodo-sync.timer
+```
+
+**iPhone**: Settings → Apps → Reminders → Reminder Accounts → Add Account → Other → Add CalDAV Account.

@@ -65,6 +65,27 @@ func dataDir() string {
 	return filepath.Join(os.Getenv("HOME"), ".local/share/wtodo")
 }
 
+// listName is the list's display name. vdirsyncer writes it to a
+// "displayname" file (lists made on the iPhone get UUID folder names).
+func listName(dir string) string {
+	b, err := os.ReadFile(filepath.Join(dataDir(), dir, "displayname"))
+	if name := strings.TrimSpace(string(b)); err == nil && name != "" {
+		return name
+	}
+	return dir
+}
+
+// listDir maps a typed "#name" to an existing folder, or a new one.
+func listDir(name string) string {
+	dirs, _ := filepath.Glob(filepath.Join(dataDir(), "*"))
+	for _, d := range dirs {
+		if id := filepath.Base(d); strings.EqualFold(id, name) || strings.EqualFold(listName(id), name) {
+			return id
+		}
+	}
+	return name
+}
+
 func loadTasks() ([]*Task, error) {
 	files, err := filepath.Glob(filepath.Join(dataDir(), "*", "*.ics"))
 	if err != nil {
@@ -183,8 +204,11 @@ func (t *Task) save() error {
 		return err
 	}
 	dir := filepath.Join(dataDir(), t.List)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
+	if _, err := os.Stat(dir); os.IsNotExist(err) { // new list: name it for the server
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+		os.WriteFile(filepath.Join(dir, "displayname"), []byte(t.List), 0o644)
 	}
 	path := filepath.Join(dir, filepath.Base(t.path))
 	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {

@@ -1,0 +1,11 @@
+[Unit]
+Description=Radicale CalDAV server (wtodo sync)
+
+[Service]
+ExecStart=%h/.local/share/radicale/venv/bin/radicale --config %h/.config/radicale/config
+# Retries until Tailscale is up after a reboot.
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
