@@ -43,6 +43,8 @@ func (p Priority) rank() int { return (int(p) + 3) % 4 }
 func (p Priority) bangs() string { return strings.Repeat("!", (4-int(p))%4) }
 
 type Task struct {
+	UID     string
+	Parent  string // UID of the parent task, for subtasks
 	Summary string
 	Note    string    // DESCRIPTION; "Notes" in iOS Reminders
 	Due     time.Time // zero = no due date; midnight when date-only
@@ -127,6 +129,12 @@ func readTask(path string) (*Task, error) {
 
 	p := todo.Props
 	t := &Task{List: filepath.Base(filepath.Dir(path)), path: path, cal: cal, todo: todo}
+	t.UID, _ = p.Text(ical.PropUID)
+	for _, rel := range p.Values(ical.PropRelatedTo) {
+		if rt := rel.Params.Get("RELTYPE"); rt == "" || rt == "PARENT" { // PARENT is the default
+			t.Parent = rel.Value
+		}
+	}
 	t.Summary, _ = p.Text(ical.PropSummary)
 	t.Note, _ = p.Text(ical.PropDescription)
 	status, _ := p.Text(ical.PropStatus)
@@ -156,7 +164,7 @@ func newTask(list string) *Task {
 	todo.Props.SetText(ical.PropUID, uid)
 	todo.Props.SetDateTime(ical.PropCreated, time.Now().UTC())
 	cal.Children = append(cal.Children, todo)
-	return &Task{List: list, path: filepath.Join(dataDir(), list, uid+".ics"), cal: cal, todo: todo}
+	return &Task{UID: uid, List: list, path: filepath.Join(dataDir(), list, uid+".ics"), cal: cal, todo: todo}
 }
 
 // save writes our fields into the VTODO and leaves every other property
@@ -229,3 +237,31 @@ func (t *Task) save() error {
 }
 
 func (t *Task) remove() error { return os.Remove(t.path) }
+
+func (t *Task) setParent(uid string) {
+	rel := ical.NewProp(ical.PropRelatedTo)
+	rel.Value = uid
+	rel.Params.Set("RELTYPE", "PARENT")
+	t.todo.Props.Set(rel)
+	t.Parent = uid
+}
+
+// finish completes (or deletes) a task together with all its subtasks.
+func finish(t *Task, del bool) error {
+	all, err := loadTasks()
+	if err != nil {
+		return err
+	}
+	for _, x := range subtree(t, all) {
+		if del {
+			err = x.remove()
+		} else if !x.Done {
+			x.Done = true
+			err = x.save()
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return saved(nil)
+}

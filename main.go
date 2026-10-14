@@ -44,7 +44,7 @@ func main() {
 		if text == "" {
 			text = prompt("New task › ", "", false)
 		}
-		err = add(text)
+		err = add(text, nil)
 	case "done":
 		err = doneTop()
 	case "list":
@@ -148,9 +148,14 @@ func printWaybar() error {
 	}
 	out := map[string]string{"text": "", "class": "empty", "tooltip": "Nothing to do"}
 	if len(ts) > 0 {
-		top := ts[0]
+		top, name := ts[0], ts[0].Summary
+		for _, p := range ts { // show a subtask as "parent › subtask"
+			if p.UID == top.Parent {
+				name = strings.TrimSpace(fit(p.Summary, 14)) + " › " + name
+			}
+		}
 		b := bucket(top, now)
-		out["text"] = bucketIcon[b] + " " + html.EscapeString(strings.TrimSpace(fit(top.Summary, 30)))
+		out["text"] = bucketIcon[b] + " " + html.EscapeString(strings.TrimSpace(fit(name, 36)))
 		if l := dueLabel(top, now); l != "" {
 			out["text"] += " <span alpha='60%'>· " + l + "</span>"
 		}
@@ -163,10 +168,16 @@ func printWaybar() error {
 func tooltip(ts []*Task, now time.Time) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "<b>%d open</b>", len(ts))
+	nodes := tree(ts)
+	// Each top-level task goes in the section of its most urgent subtask,
+	// and its whole subtree is shown under it.
 	for b := range bucketNames {
-		header := false
-		for _, t := range ts {
-			if bucket(t, now) != b {
+		header, in := false, false
+		for _, n := range nodes {
+			if n.pre == "" {
+				in = bucket(n.top, now) == b
+			}
+			if !in {
 				continue
 			}
 			if !header {
@@ -177,10 +188,15 @@ func tooltip(ts []*Task, now time.Time) string {
 				fmt.Fprintf(&sb, "\n\n<span color='%s'><b>%s</b></span>", color, bucketNames[b])
 				header = true
 			}
-			fmt.Fprintf(&sb, "\n<span color='%s'></span>  %s  <span color='%s'>%-14s #%s</span>",
-				prioColor[t.Prio], html.EscapeString(fit(t.Summary, 36)), dimColor, dueLabel(t, now), listName(t.List))
-			for _, l := range noteLines(t.Note, 52) { // as wide as name + due columns
-				fmt.Fprintf(&sb, "\n   <span color='%s'><i>%s</i></span>", dimColor, l)
+			fmt.Fprintf(&sb, "\n<span color='%s'>\uf111</span>  <span color='%s'>%s</span>%s  <span color='%s'>%-14s #%s</span>",
+				prioColor[n.Prio], dimColor, n.pre, html.EscapeString(fit(n.Summary, 36-len([]rune(n.pre)))),
+				dimColor, dueLabel(n.Task, now), listName(n.List))
+			indent := n.cont // notes line up with the summary; keep the branch to subtasks going
+			if n.kids {
+				indent += "│  "
+			}
+			for _, l := range noteLines(n.Note, max(20, 52-len([]rune(indent)))) {
+				fmt.Fprintf(&sb, "\n   <span color='%s'>%s<i>%s</i></span>", dimColor, indent, l)
 			}
 		}
 	}
@@ -190,27 +206,33 @@ func tooltip(ts []*Task, now time.Time) string {
 func printList() error {
 	now := time.Now()
 	ts, err := pending(now)
-	for _, t := range ts {
-		fmt.Println(line(t, now))
+	for _, n := range tree(ts) {
+		fmt.Println(line(n, now))
 	}
 	return err
 }
 
 // line is the plain-text form of a task, used by `list` and the menu.
-func line(t *Task, now time.Time) string {
-	return fmt.Sprintf("%-3s %s  %-14s #%s", t.Prio.bangs(), fit(t.Summary, 36), dueLabel(t, now), listName(t.List))
+func line(n node, now time.Time) string {
+	return fmt.Sprintf("%-3s %s  %-14s #%s", n.Prio.bangs(), fit(n.pre+n.Summary, 36), dueLabel(n.Task, now), listName(n.List))
 }
 
-func add(text string) error {
+// add creates a task from quick-add text; with a parent, a subtask in the
+// parent's list.
+func add(text string, parent *Task) error {
 	p := parse(text, time.Now())
 	if p.Summary == "" {
 		return nil
 	}
-	if p.List == "" {
-		p.List = defaultList
+	list := listDir(orDefault(p.List, defaultList))
+	if parent != nil {
+		list = parent.List
 	}
-	t := newTask(listDir(p.List))
+	t := newTask(list)
 	t.Summary, t.Due, t.HasTime, t.Prio, t.Note = p.Summary, p.Due, p.HasTime, p.Prio, p.Note
+	if parent != nil {
+		t.setParent(parent.UID)
+	}
 	return saved(t.save())
 }
 
@@ -220,9 +242,8 @@ func doneTop() error {
 	if err != nil || len(ts) == 0 {
 		return err
 	}
-	ts[0].Done = true
 	exec.Command("notify-send", "-a", "wtodo", "Done", ts[0].Summary).Run()
-	return saved(ts[0].save())
+	return finish(ts[0], false)
 }
 
 // saved refreshes the bar after a successful write.

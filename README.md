@@ -33,9 +33,19 @@ The menu opens in NORMAL mode:
 | `h` | edit the task (cursor at the start, if [wtype](https://github.com/atx/wtype) is installed) |
 | `Enter` | actions: done, snooze, edit, delete |
 | `i` | INSERT mode: type to search; text that matches nothing + `Enter` adds a task |
+| `o` | add a subtask to the highlighted task |
 | `Esc` | INSERT → NORMAL; NORMAL → quit |
 
 Fuzzel has no modes, so switching modes reopens fuzzel. This clears the search text but keeps the highlighted task.
+
+## Subtasks
+
+Add one with `o` or **Add subtask**; any depth works. Subtasks are drawn as a tree under their parent, and a
+parent ranks as high as its most urgent subtask. If the most pressing task is a subtask, the bar shows it as
+`parent › subtask`. Completing or deleting a task does the same to its subtasks.
+
+Subtasks use the standard `RELATED-TO` link. iOS Reminders doesn't support subtasks on CalDAV accounts, so on the
+phone they appear as separate, ordinary reminders.
 
 ## Quick-add syntax
 

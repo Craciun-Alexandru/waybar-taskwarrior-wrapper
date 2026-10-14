@@ -15,6 +15,7 @@ const (
 	exitEdit   = 11 // h (custom-2)
 	exitInsert = 12 // i (custom-3)
 	exitNormal = 13 // Esc in insert mode (custom-4)
+	exitSub    = 14 // o (custom-5): add a subtask
 )
 
 var navKeys = []string{
@@ -26,7 +27,7 @@ func normalKeys() []string {
 	// Swallow the other letters (bind them to a no-op) so they don't type.
 	var rest []string
 	for c := 'a'; c <= 'z'; c++ {
-		if !strings.ContainsRune("jklhi", c) {
+		if !strings.ContainsRune("jklhio", c) {
 			rest = append(rest, string(c))
 		}
 	}
@@ -34,8 +35,9 @@ func normalKeys() []string {
 		"--override=key-bindings.custom-1=l",
 		"--override=key-bindings.custom-2=h",
 		"--override=key-bindings.custom-3=i",
+		"--override=key-bindings.custom-5=o",
 		"--override=key-bindings.cursor-end=End Control+e "+strings.Join(rest, " "),
-		"--placeholder=i search/add · l done · h edit · Enter actions · Esc quit")
+		"--placeholder=i search/add · l done · h edit · o subtask · Enter actions · Esc quit")
 }
 
 var insertKeys = []string{
@@ -88,9 +90,10 @@ func menu() error {
 		if err != nil {
 			return err
 		}
+		nodes := tree(ts)
 		items := [][2]string{{"k0", "\uf067  New task"}}
-		for i, t := range ts {
-			items = append(items, [2]string{fmt.Sprint("k", i+1), line(t, now)})
+		for i, n := range nodes {
+			items = append(items, [2]string{fmt.Sprint("k", i+1), line(n, now)})
 		}
 		sel = min(sel, len(items)-1)
 
@@ -112,22 +115,23 @@ func menu() error {
 		case code == exitNormal:
 			insert = false
 		case code == exitDone && i > 0:
-			ts[i-1].Done = true
-			err = saved(ts[i-1].save())
+			err = finish(nodes[i-1].Task, false)
 		case code == exitEdit && i > 0:
-			err = edit(ts[i-1], now)
+			err = edit(nodes[i-1].Task, now)
+		case code == exitSub && i > 0:
+			err = addSub(nodes[i-1].Task)
 		case code == exitDone: // l on "New task": nothing to complete
-		case code != 0 && code != exitEdit:
+		case code != 0 && code != exitEdit && code != exitSub:
 			return nil // Esc in normal mode, or fuzzel closed
-		case code != 0 || i == 0: // Enter or h on "New task"
+		case code != 0 || i == 0: // Enter, h or o on "New task"
 			insert = false
-			err = add(prompt("New task › ", "", false))
+			err = add(prompt("New task › ", "", false), nil)
 		case i > 0:
 			insert = false
-			err = taskMenu(ts[i-1], now)
+			err = taskMenu(nodes[i-1].Task, now)
 		case key != "": // typed text that matched nothing: add it
 			insert = false
-			err = add(key)
+			err = add(key, nil)
 		default:
 			return nil
 		}
@@ -142,23 +146,30 @@ func taskMenu(t *Task, now time.Time) error {
 		{"done", "  Done"},
 		{"tomorrow", "  Snooze to tomorrow"},
 		{"edit", "  Edit…"},
+		{"sub", "  Add subtask"},
 		{"delete", "  Delete"},
 	}
 	key, _ := pick(fit(t.Summary, 30)+" › ", items, append(navKeys, "--only-match")...)
 	switch key {
 	case "done":
-		t.Done = true
+		return finish(t, false)
+	case "sub":
+		return addSub(t)
 	case "tomorrow":
 		y, m, d := now.AddDate(0, 0, 1).Date()
 		t.Due = time.Date(y, m, d, t.Due.Hour(), t.Due.Minute(), 0, 0, time.Local)
 	case "edit":
 		return edit(t, now)
 	case "delete":
-		return saved(t.remove())
+		return finish(t, true)
 	default:
 		return nil
 	}
 	return saved(t.save())
+}
+
+func addSub(parent *Task) error {
+	return add(prompt("└─ "+strings.TrimSpace(fit(parent.Summary, 20))+" › ", "", false), parent)
 }
 
 // edit opens the task in the quick-add syntax, cursor at the start.
